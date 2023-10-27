@@ -1,5 +1,5 @@
 # A Temporal Loom for Models
-_We see the timeline as physical dimension of course it is in DL model training LOL!_
+_We see the timeline as physical dimension, of course it is in DL model training LOL!_
 
 ## Installation
 Requirements
