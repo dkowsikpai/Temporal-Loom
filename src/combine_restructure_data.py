@@ -3,11 +3,19 @@ import jsonlines
 from tqdm import tqdm
 import argparse
 from rich.pretty import pprint
+import pandas as pd
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('--input', help='Input file path')
 
 args = argparser.parse_args()
+
+# Read the paraphrased relations from the file
+print("Reading the paraphrased relations from the file")
+with jsonlines.open('./utils/templama_relation_rephrase.jsonl') as f:
+      para_relations = list(f)
+
+# pprint(relations)
 
 # Number of files to combine
 print("Combining {} files".format(len(args.input.split(','))))
@@ -68,12 +76,58 @@ for k, v in grouped_data.items():
 grouped_data = filtered.copy()
 print("Number of samples after filtering: {}".format(len(grouped_data)))
 
+# Subject relation extraction
+print("Extracting subject relation")
+df = pd.read_csv('./data/templates.csv')
+
+template_relation = df["Template"].to_list()
+relations = []
+for i in template_relation:
+  rel = i.replace("<subject>", "")
+  rel = rel.replace("<object>", "")
+  rel = rel.replace(".", "")
+  rel = rel.strip()
+  relations.append(rel)
+
+print("Relations in the dataset are:")
+pprint(relations)
+print("Number of relations", len(relations))
 
 # JSONing
 data = []
 for k, v in grouped_data.items():
   data.append({"query": k, "answer": v})
 
+
+relations_dist = {}
+for i in range(len(data)):
+   for rel in relations:
+      if rel in data[i]["query"]:
+         data[i]["relation"] = rel
+         subject = data[i]["query"].replace(rel, "")
+         subject = subject.replace("_X_", "")
+         subject = subject.replace(".", "")
+         subject = subject.strip()
+         data[i]["subject"] = subject
+
+         # Add Paraphrased sentences
+         data[i]["paraphrased_query"] = []
+         for rel_phrase in para_relations:
+            if rel_phrase["relation"] == rel:
+               paraphrases = []
+               for para_phase in rel_phrase["paraphrase"]:
+                  if rel_phrase["subject_first"]:
+                     para = subject + " " + para_phase + "_X_." 
+                  else:
+                     para = "_X_ " + para_phase + " " + subject + "."
+                  paraphrases.append(para)
+               data[i]["paraphrased_query"] = paraphrases
+
+# Give id for each sample
+count = 1
+for i in range(len(data)):
+   data[i]["id"] = count
+   count += 1
 
 # Writing the output file
 print("Writing the output file")

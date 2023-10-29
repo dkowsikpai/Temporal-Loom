@@ -1,0 +1,9 @@
+{"relation": "plays for", "paraphrase": ["competes for", "performs for", "participates for", "engages for", "belongs to"], "subject_first": true}
+{"relation": "holds the position of", "paraphrase": ["occupies the role of", "is in the position of", "serves as", "acts as", "undertakes the role of"], "subject_first": true}
+{"relation": "works for", "paraphrase": ["is employed by", "is affiliated with", "engages with", "functions for", "is associated with"], "subject_first": true}
+{"relation": "is a member of the", "paraphrase": ["belongs to the", "is affiliated with the", "is associated with the", "is a part of the", "is in the membership of the"], "subject_first": true}
+{"relation": "is the head coach of", "paraphrase": ["oversees as head coach for", "manages as the head coach for", "directs the team as head coach for", "leads as the head coach for", "commands as the head coach for"], "subject_first": false}
+{"relation": "attended", "paraphrase": ["was present at", "participated in", "took part in", "joined in", "appeared at"], "subject_first": true}
+{"relation": "is the chair of", "paraphrase": ["oversees as chair of", "presides over as chair of", "occupies the position of chair of", "serves as chair of", "holds the role of chair of"], "subject_first": false}
+{"relation": "is the head of the government of", "paraphrase": ["leads the government of", "oversees the government of", "heads the government of", "presides over the government of", "directs the government of"], "subject_first": false}
+{"relation": "is owned by", "paraphrase": ["belongs to", "is the property of", "is in possession of", "is under the ownership of", "is held by"], "subject_first": true}
