@@ -30,3 +30,5 @@ python src/combine_restructure_data.py --input ./data/train.json,./data/test.jso
 ```
 > Note: You can add more data by seperating the data path in `--input` parameter by comma.
 
+### Paraphrasing of the input query (relation)
+The list of the paraphrased relation can be seen in the file `utils/templama_relation_rephrase.jsonl` for the TempLAMA dataset.
