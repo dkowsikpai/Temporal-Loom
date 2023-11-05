@@ -1,0 +1,9 @@
+{"relation": "plays for", "paraphrase": ["What are the list X played for"], "subject_first": true}
+{"relation": "holds the position of", "paraphrase": ["What are the list X held position of"], "subject_first": true}
+{"relation": "works for", "paraphrase": ["What are the list X worked for"], "subject_first": true}
+{"relation": "is a member of the", "paraphrase": ["What are the list X was member of"], "subject_first": true}
+{"relation": "is the head coach of", "paraphrase": ["What are the list head coaches of X"], "subject_first": false}
+{"relation": "attended", "paraphrase": ["What are the list X attended"], "subject_first": true}
+{"relation": "is the chair of", "paraphrase": ["What are the list X chair of"], "subject_first": false}
+{"relation": "is the head of the government of", "paraphrase": ["What are the list head of goverment of X"], "subject_first": false}
+{"relation": "is owned by", "paraphrase": ["What are the list X was owned by"], "subject_first": true}

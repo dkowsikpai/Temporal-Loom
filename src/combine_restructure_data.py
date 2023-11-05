@@ -67,6 +67,19 @@ for i in tqdm(output):
     grouped_data[i["query"]] = []
   grouped_data[i["query"]].append({"answer": i["answer"][0]["name"], "date": i["date"]})
 
+# Remove recurring answers over the time (Keepining oly the change over the year)
+print("Removing recurring answers over the time")
+for k, v in grouped_data.items():
+   filtered = []
+   prev = ""
+   for i in v:
+      if i["answer"] != prev:
+         filtered.append(i)
+         prev = i["answer"]
+   grouped_data[k] = filtered
+
+pprint(grouped_data["Valentino Rossi plays for _X_."])
+
 # Removing repetitive duplicates
 print("Number of samples before filtering: {}".format(len(grouped_data)))
 filtered = {}

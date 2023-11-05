@@ -32,3 +32,13 @@ python src/combine_restructure_data.py --input ./data/train.json,./data/test.jso
 
 ### Paraphrasing of the input query (relation)
 The list of the paraphrased relation can be seen in the file `utils/templama_relation_rephrase.jsonl` for the TempLAMA dataset.
+
+
+### Finetuning dataset
+Number of samples in train: 9149
+Number of samples in validation: 3000
+
+Finetune the model using the code
+```term
+python src/finetuning/seq2seq.py --train ./data/ft-2010-2018.csv --val ./data/ft-val-2010-2018.csv --cuda 3
+```
