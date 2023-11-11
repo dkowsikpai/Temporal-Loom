@@ -26,11 +26,14 @@ parser.add_argument('--train', type=str, required=True)
 parser.add_argument('--val', type=str, required=True)
 # parser.add_argument('--year', type=str, required=True, default="2010")
 parser.add_argument('--model', type=str, default="t5-small")
+parser.add_argument('--sample', type=int, default=10)
+parser.add_argument('--test_model', type=bool, default=False)
+parser.add_argument('--test_model_path', type=str, default="t5-small")
 parser.add_argument('--cuda', type=str, default=0)
-args = parser.parse_args()
+pargs = parser.parse_args()
 
 # import wandb
-os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
+os.environ["CUDA_VISIBLE_DEVICES"] = pargs.cuda
 # os.environ["WANDB_PROJECT"]="generation_bot"
 
 # save your trained model checkpoint to wandb
@@ -50,8 +53,10 @@ def seed_everything(seed):
 
 seed_everything(1)
 # Load the dataset:
-data_path = args.train
-model_checkpoint = args.model
+data_path = pargs.train
+model_checkpoint = pargs.model
+if pargs.test_model:
+    model_checkpoint = pargs.test_model_path
 
 if model_checkpoint in ["gpt2", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
     prefix = "answer: "
@@ -62,7 +67,7 @@ model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
 
 
 reviews = pd.read_csv(data_path)
-val_reviews = pd.read_csv(args.val)
+val_reviews = pd.read_csv(pargs.val)
 print(reviews)
 print(reviews.head())
 reviews.info()
@@ -139,7 +144,7 @@ args = Seq2SeqTrainingArguments(
     per_device_eval_batch_size=batch_size,
     weight_decay=0.01,
     save_total_limit=1,
-    num_train_epochs=3,
+    num_train_epochs=10,
     save_strategy="steps",
     eval_steps = 100,
     do_eval=True,
@@ -148,7 +153,7 @@ args = Seq2SeqTrainingArguments(
     seed=1,
     report_to = "tensorboard"
 )
-data_collator = DataCollatorForSeq2Seq(tokenizer, model=model)
+data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, label_pad_token_id=tokenizer.pad_token_id)
 import nltk
 import numpy as np
 
@@ -185,5 +190,31 @@ trainer = Seq2SeqTrainer(
     compute_metrics=compute_metrics
 )
 
-print("Training")
-trainer.train()
+if not pargs.test_model:
+    print("Training")
+    trainer.train()
+
+# Generate some predictions
+print("Generating predictions")
+samples = pargs.sample
+for i in range(samples):
+    # idx = random.randint(0, len(ds_reviews))
+    idx = i
+    question = prefix + ds_reviews['question'][idx]
+    answer = ds_reviews['answer'][idx]
+    input_dict = tokenizer(question, return_tensors="pt")
+    input_ids = input_dict["input_ids"].to("cuda")
+    pred_ids = trainer.model.generate(input_ids)
+    pred_answer = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)[0]
+
+    # Compute accuracy
+    correct = 0
+    if answer in pred_answer:
+        correct += 1
+
+    print("Question: ", question)
+    print("Answer: ", answer)
+    print("Predicted answer: ", pred_answer)
+    print("\n")
+
+print("Accuracy: ", correct/samples)

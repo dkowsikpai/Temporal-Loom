@@ -42,3 +42,9 @@ Finetune the model using the code
 ```term
 python src/finetuning/seq2seq.py --model t5-base --train ./data/ft-2010-2018.csv --val ./data/ft-val-2010-2018.csv --cuda 3
 ```
+
+
+### Temsorboard
+```term
+python -m tensorboard.main --logdir ./logs --port 8000
+```

@@ -10,3 +10,4 @@ wget https://storage.googleapis.com/gresearch/templama/train.json
 wget https://storage.googleapis.com/gresearch/templama/val.json
 wget https://storage.googleapis.com/gresearch/templama/test.json
 cd ../
+python -m spacy download en_core_web_sm
