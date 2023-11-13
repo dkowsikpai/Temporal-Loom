@@ -16,9 +16,9 @@ import os
 import argparse
 from transformers import AutoTokenizer
 from datasets import load_dataset, Dataset, DatasetDict
-from transformers import AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer
+from transformers import AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, AutoModelForCausalLM
 import evaluate
-
+from tqdm import tqdm
     
 
 parser = argparse.ArgumentParser()
@@ -27,8 +27,8 @@ parser.add_argument('--val', type=str, required=True)
 # parser.add_argument('--year', type=str, required=True, default="2010")
 parser.add_argument('--model', type=str, default="t5-small")
 parser.add_argument('--sample', type=int, default=10)
-parser.add_argument('--test_model', type=bool, default=False)
-parser.add_argument('--test_model_path', type=str, default="t5-small")
+parser.add_argument('--test-model', type=bool, default=False)
+parser.add_argument('--test-model-path', type=str, default="t5-small")
 parser.add_argument('--cuda', type=str, default=0)
 pargs = parser.parse_args()
 
@@ -58,12 +58,21 @@ model_checkpoint = pargs.model
 if pargs.test_model:
     model_checkpoint = pargs.test_model_path
 
-if model_checkpoint in ["gpt2", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
+if model_checkpoint in ["gpt2", "gpt2-xl", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
     prefix = "answer: "
 else:
     prefix = ""
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+if model_checkpoint in ["gpt2", "gpt2-xl"]:
+    tokenizer.pad_token = tokenizer.eos_token
+    model = AutoModelForCausalLM.from_pretrained(model_checkpoint)
+else:
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+
+# tokenizer.save_pretrained(f"../temporal/results/pretrained-{model_checkpoint}")
+# model.save_pretrained(f"../temporal/results/pretrained-{model_checkpoint}")
+# print("here")
+# exit()
 
 
 reviews = pd.read_csv(data_path)
@@ -133,7 +142,7 @@ tokenized_datasets = raw_datasets.map(preprocess_function, batched=True)
 
 
 print("Setting up training arguments")
-batch_size = 4
+batch_size = 8
 model_name = model_checkpoint.split("/")[-1]
 args = Seq2SeqTrainingArguments(
     f"./logs/{model_name}-finetuned2",
@@ -197,7 +206,18 @@ if not pargs.test_model:
 # Generate some predictions
 print("Generating predictions")
 samples = pargs.sample
-for i in range(samples):
+
+data_to_csv = []
+
+our_metrics = {
+    "accuracy": [],
+    "exact_odering": [],
+    "relaxed_ordering": [],
+}
+
+from metrics import accuracy, exact_ordering, relaxed_ordering
+
+for i in tqdm(range(samples)):
     # idx = random.randint(0, len(ds_reviews))
     idx = i
     question = prefix + ds_reviews['question'][idx]
@@ -207,14 +227,21 @@ for i in range(samples):
     pred_ids = trainer.model.generate(input_ids)
     pred_answer = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)[0]
 
-    # Compute accuracy
-    correct = 0
-    if answer in pred_answer:
-        correct += 1
+    acc = accuracy(pred_answer, answer)
+    eo = exact_ordering(pred_answer, answer)
+    ro = relaxed_ordering(pred_answer, answer)
 
-    print("Question: ", question)
-    print("Answer: ", answer)
-    print("Predicted answer: ", pred_answer)
-    print("\n")
+    our_metrics["accuracy"].append(acc)
+    our_metrics["exact_odering"].append(eo)
+    our_metrics["relaxed_ordering"].append(ro)
 
-print("Accuracy: ", correct/samples)
+    data_to_csv.append([question, answer, pred_answer, acc, eo, ro])
+
+    # print("Question: ", question)
+    # print("Answer: ", answer)
+    # print("Predicted answer: ", pred_answer)
+    # print("\n")
+
+df = pd.DataFrame(data_to_csv, columns=["Question", "Answer", "Predicted Answer", "Accuracy", "Exact Ordering", "Relaxed Ordering"])
+df.to_csv(f"./logs/{model_name}-finetuned2/results.csv")
+print("Saved to", f"./logs/{model_name}-finetuned2/results.csv")

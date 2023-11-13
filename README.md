@@ -40,7 +40,7 @@ Number of samples in validation: 3000
 
 Finetune the model using the code
 ```term
-python src/finetuning/seq2seq.py --model t5-base --train ./data/ft-2010-2018.csv --val ./data/ft-val-2010-2018.csv --cuda 3
+python src/seq2seq.py --model t5-base --train ./data/ft-2010-2018.csv --val ./data/ft-val-2010-2018.csv --cuda 3
 ```
 
 

@@ -1,9 +1,11 @@
-from ner import get_year_object_pairs
+from ner import NER
 
 """
 This library contains functions to calculate the different metrics for the temporal task
 Also, this library uses Spacy to extract the year-object pairs from the prediction and label
 """
+
+get_year_object_pairs = NER(method="stanza").get_year_object_pairs
 
 def accuracy(preds: str, label: str) -> int:
     """
