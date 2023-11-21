@@ -19,24 +19,17 @@ from datasets import load_dataset, Dataset, DatasetDict
 from transformers import AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, AutoModelForCausalLM, DataCollatorForLanguageModeling
 import evaluate
 from tqdm import tqdm
+# from transformer_utils.low_memory import enable_low_memory_load
+# from accelerate import Accelerator
 
-
-MASK_MAP = {
-    "t5-base": "<extra_id_0>",
-    "t5-large": "<extra_id_0>",
-    "BART": "<mask>",
-    "GPT2": "<mask>",
-    "default": "<mask>"
-}
-    
+# accelerator = Accelerator()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--train', type=str, required=True)
 parser.add_argument('--val', type=str, required=True)
 # parser.add_argument('--year', type=str, required=True, default="2010")
 parser.add_argument('--model', type=str, default="t5-small")
-parser.add_argument('--epoch', type=int, default=50)
-# parser.add_argument('--sample', type=int, default=10)
+parser.add_argument('--sample', type=int, default=10)
 parser.add_argument('--test-model', type=bool, default=False)
 parser.add_argument('--test-model-path', type=str, default="t5-small")
 parser.add_argument('--cuda', type=str, default=0)
@@ -62,24 +55,24 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = True
 
 seed_everything(1)
-
-# Auto Models
-auto_model = ["gpt2", "gpt2-large", "gpt2-xl", "mistralai/Mistral-7B-v0.1"]
-
 # Load the dataset:
+data_path = pargs.train
 model_checkpoint = pargs.model
-mask = MASK_MAP.get(model_checkpoint, MASK_MAP["default"])
+
+# enable_low_memory_load()    
+
 if pargs.test_model:
     model_checkpoint = pargs.test_model_path
 
-if model_checkpoint in ["gpt2", "gpt2-large", "gpt2-xl", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
+if model_checkpoint in ["gpt2", "gpt2-xl", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
     prefix = "answer: "
 else:
     prefix = ""
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-if model_checkpoint in auto_model:
+if model_checkpoint in ["gpt2", "gpt2-xl", "mistralai/Mistral-7B-v0.1"]:
     tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(model_checkpoint)
+    # model = accelerator.prepare(model)
 else:
     model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
 
@@ -89,7 +82,6 @@ else:
 # exit()
 
 
-data_path = pargs.train
 reviews = pd.read_csv(data_path)
 val_reviews = pd.read_csv(pargs.val)
 print(reviews)
@@ -154,11 +146,10 @@ raw_datasets = train_test_valid_dataset
 #     return result
 
 
-if model_checkpoint in auto_model:
-
+if model_checkpoint in ["gpt2", "gpt2-xl", "mistralai/Mistral-7B-v0.1"]:
     def preprocess_function(examples):
-        inputs = [doc.replace("_X_", " ") + " " + ans for doc, ans in zip(examples["question"], examples["answer"])]
-        model_inputs = tokenizer(inputs, max_length=max_target_length, truncation=True, padding=True)
+        inputs = [doc + " " + ans for doc, ans in zip(examples["question"], examples["answer"])]
+        model_inputs = tokenizer(inputs, max_length=max_target_length, truncation=True)
 
         model_inputs["labels"] = model_inputs["input_ids"].copy()
         return model_inputs
@@ -166,7 +157,7 @@ if model_checkpoint in auto_model:
 
 else:
     def preprocess_function(examples):
-        inputs = [prefix + doc.replace("_X_", mask) for doc in examples["question"]]
+        inputs = [prefix + doc for doc in examples["question"]]
         model_inputs = tokenizer(inputs, max_length=max_target_length, truncation=True)
 
         # # Setup the tokenizer for targets
@@ -187,24 +178,20 @@ tokenized_datasets = raw_datasets.map(preprocess_function, batched=True)
 # print(tokenized_datasets['train'][0])
 # exit()
 
-print ("Model Checkpoint: ", model_checkpoint)
-# exit()
-
 
 print("Setting up training arguments")
 batch_size = 32
 model_name = model_checkpoint.split("/")[-1]
-os.makedirs(f"./logs/{model_name}-finetuned2", exist_ok=True)
 args = Seq2SeqTrainingArguments(
-    f"./results/{model_name}-finetuned2",
+    f"./logs/{model_name}-finetuned2",
     evaluation_strategy = "epoch",
     logging_steps=100, 
-    learning_rate=3e-4,
+    learning_rate=2e-5,
     per_device_train_batch_size=batch_size,
     per_device_eval_batch_size=batch_size,
     weight_decay=0.01,
     save_total_limit=1,
-    num_train_epochs=pargs.epoch,
+    num_train_epochs=25,
     save_strategy="steps",
     eval_steps = 100,
     do_eval=True,
@@ -214,8 +201,8 @@ args = Seq2SeqTrainingArguments(
     report_to = "tensorboard"
 )
 
-if model_checkpoint in auto_model:
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+if model in ["gpt2", "gpt2-xl", "mistralai/Mistral-7B-v0.1"]:
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm_probability=False)
 else:
     data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, label_pad_token_id=tokenizer.pad_token_id)
 
@@ -256,12 +243,13 @@ trainer = Seq2SeqTrainer(
     compute_metrics=compute_metrics
 )
 
-if not pargs.test_model or pargs.epoch == 1:
+if not pargs.test_model:
     print("Training")
     trainer.train()
 
 # Generate some predictions
 print("Generating predictions")
+samples = pargs.sample
 
 data_to_csv = []
 
@@ -271,53 +259,33 @@ our_metrics = {
     "relaxed_ordering": [],
 }
 
-# from metrics import accuracy, exact_ordering, relaxed_ordering
+from metrics import accuracy, exact_ordering, relaxed_ordering
 
-for i in tqdm(range(len(val_reviews))):
+for i in tqdm(range(samples)):
     # idx = random.randint(0, len(ds_reviews))
     idx = i
-    question = prefix + val_reviews['question'][idx].replace("_X_", mask)
-    answer = val_reviews['answer'][idx]
+    question = prefix + ds_reviews['question'][idx]
+    answer = ds_reviews['answer'][idx]
     input_dict = tokenizer(question, return_tensors="pt")
     input_ids = input_dict["input_ids"].to("cuda")
-    pred_ids = trainer.model.generate(input_ids, return_dict_in_generate=True, output_scores=True, max_new_tokens=10)
-    # print(pred_ids)
-    pred_answer = tokenizer.batch_decode(pred_ids.sequences, skip_special_tokens=True)[0]
+    pred_ids = trainer.model.generate(input_ids)
+    pred_answer = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)[0]
 
-    transition_scores = model.compute_transition_scores(pred_ids.sequences, pred_ids.scores, normalize_logits=True)
-    input_length = 1 if model.config.is_encoder_decoder else input_ids.input_ids.shape[1]
-    generated_tokens = pred_ids.sequences[:, input_length:]
+    acc = accuracy(pred_answer, answer)
+    eo = exact_ordering(pred_answer, answer)
+    ro = relaxed_ordering(pred_answer, answer)
 
-    # for tok, score in zip(generated_tokens[0], transition_scores[0]):
-    #     # | token | token string | logits | probability
-    #     score = score.to("cpu")
-    #     print(f"| {tok:5d} | {tokenizer.decode(tok):8s} | {score.numpy():.3f} | {np.exp(score.numpy()):.2%}")
-    
-    # Combined probability for the sequence
-    # print(f"Probability: {np.exp(transition_scores[0].sum().cpu().numpy()):.2%}")
+    our_metrics["accuracy"].append(acc)
+    our_metrics["exact_odering"].append(eo)
+    our_metrics["relaxed_ordering"].append(ro)
 
-    # print(transition_scores)
-    # exit()
-
-    # acc = accuracy(pred_answer, answer)
-    # eo = exact_ordering(pred_answer, answer)
-    # ro = relaxed_ordering(pred_answer, answer)
-
-    # our_metrics["accuracy"].append(acc)
-    # our_metrics["exact_odering"].append(eo)
-    # our_metrics["relaxed_ordering"].append(ro)
-
-    acc = 1 if pred_answer == answer else 0
-    prob = np.exp(transition_scores[0].sum().cpu().numpy())
-
-    data_to_csv.append([question, answer, pred_answer, acc, prob]) # , eo, ro
+    data_to_csv.append([question, answer, pred_answer, acc, eo, ro])
 
     # print("Question: ", question)
     # print("Answer: ", answer)
     # print("Predicted answer: ", pred_answer)
     # print("\n")
 
-df = pd.DataFrame(data_to_csv, columns=["Question", "Answer", "Predicted Answer", "Accuracy", "Probability"]) # "Exact Ordering", "Relaxed Ordering"
-val_ds_name = pargs.val.split("/")[-1].split(".")[0]
-df.to_csv(f"./logs/{model_name}-finetuned2/results-{val_ds_name}.csv")
-print("Saved to", f"./logs/{model_name}-finetuned2/results-{val_ds_name}.csv")
+df = pd.DataFrame(data_to_csv, columns=["Question", "Answer", "Predicted Answer", "Accuracy", "Exact Ordering", "Relaxed Ordering"])
+df.to_csv(f"./logs/{model_name}-finetuned2/results.csv")
+print("Saved to", f"./logs/{model_name}-finetuned2/results.csv")

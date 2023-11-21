@@ -127,14 +127,15 @@ def evaluate(model, dataloader):
 
 
 # Initialize the GPT-2 tokenizer and model
-# tokenizer = GPT2Tokenizer.from_pretrained('gpt2-xl')
-# tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2-xl')
+tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
-# model = GPT2LMHeadModel.from_pretrained('gpt2-xl')
-
-tokenizer = T5Tokenizer.from_pretrained('t5-base')
-model = T5ForConditionalGeneration.from_pretrained('t5-base')
+model = GPT2LMHeadModel.from_pretrained('gpt2-xl')
 model.to(device)
+
+# tokenizer = T5Tokenizer.from_pretrained('t5-base')
+# model = T5ForConditionalGeneration.from_pretrained('t5-base')
+# model.to(device)
 
 # Prepare the dataset and dataloader
 dataset = QADataset(args.dataset_path)

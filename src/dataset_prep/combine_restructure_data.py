@@ -10,6 +10,8 @@ argparser.add_argument('--input', help='Input file path')
 
 args = argparser.parse_args()
 
+exclude_relations = ["is the head coach of", "is the chair of", "is the head of the government of"]
+
 # Read the paraphrased relations from the file
 print("Reading the paraphrased relations from the file")
 with jsonlines.open('./utils/templama_relation_rephrase.jsonl') as f:
@@ -63,6 +65,7 @@ with jsonlines.open('./data/combined_data.json', mode='w') as writer:
 print("Restructuring the data")
 grouped_data = {} # Keys will be the query and values will be dict of answers over time
 for i in tqdm(output):
+  i["query"] = i["query"].replace(".", "")
   if i["query"] not in grouped_data:
     grouped_data[i["query"]] = []
   grouped_data[i["query"]].append({"answer": i["answer"][0]["name"], "date": i["date"]})
@@ -78,7 +81,7 @@ for k, v in grouped_data.items():
          prev = i["answer"]
    grouped_data[k] = filtered
 
-pprint(grouped_data["Valentino Rossi plays for _X_."])
+pprint(grouped_data["Valentino Rossi plays for _X_"])
 
 # Removing repetitive duplicates
 print("Number of samples before filtering: {}".format(len(grouped_data)))
@@ -96,20 +99,28 @@ df = pd.read_csv('./data/templates.csv')
 template_relation = df["Template"].to_list()
 relations = []
 for i in template_relation:
-  rel = i.replace("<subject>", "")
-  rel = rel.replace("<object>", "")
-  rel = rel.replace(".", "")
-  rel = rel.strip()
-  relations.append(rel)
+    rel = i.replace("<subject>", "")
+    rel = rel.replace("<object>", "")
+    rel = rel.replace(".", "")
+    rel = rel.strip()
+    if rel not in exclude_relations:
+        relations.append(rel)
 
 print("Relations in the dataset are:")
 pprint(relations)
 print("Number of relations", len(relations))
 
+def exclude(query):
+   for rel in exclude_relations:
+      if rel in query:
+         return True
+   return False
+
 # JSONing
 data = []
 for k, v in grouped_data.items():
-  data.append({"query": k, "answer": v})
+    if not exclude(k):
+        data.append({"query": k, "answer": v})
 
 
 relations_dist = {}
@@ -130,7 +141,7 @@ for i in range(len(data)):
                paraphrases = []
                for para_phase in rel_phrase["paraphrase"]:
                   if rel_phrase["subject_first"]:
-                     para = subject + " " + para_phase + "_X_." 
+                     para = subject + " " + para_phase + " _X_" 
                   else:
                      para = "_X_ " + para_phase + " " + subject + "."
                   paraphrases.append(para)
@@ -144,6 +155,6 @@ for i in range(len(data)):
 
 # Writing the output file
 print("Writing the output file")
-with jsonlines.open('./data/restructured_data.json', mode='w') as writer:
+with jsonlines.open('./data/restructured_data_auto_gen.json', mode='w') as writer:
     writer.write_all(data)
 
