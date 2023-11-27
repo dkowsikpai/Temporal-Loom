@@ -19,14 +19,15 @@ from datasets import load_dataset, Dataset, DatasetDict
 from transformers import AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, AutoModelForCausalLM, DataCollatorForLanguageModeling
 import evaluate
 from tqdm import tqdm
-
+import nltk
+from rich.pretty import pprint
 
 MASK_MAP = {
     "t5-base": "<extra_id_0>",
     "t5-large": "<extra_id_0>",
     "BART": "<mask>",
-    "GPT2": "<mask>",
-    "default": "<mask>"
+    "gpt2": "",
+    "default": "<extra_id_0>"
 }
     
 
@@ -39,6 +40,7 @@ parser.add_argument('--epoch', type=int, default=50)
 # parser.add_argument('--sample', type=int, default=10)
 parser.add_argument('--test-model', type=bool, default=False)
 parser.add_argument('--test-model-path', type=str, default="t5-small")
+parser.add_argument('--auto', type=bool, default=False, help="Auto regressive")
 parser.add_argument('--cuda', type=str, default=0)
 pargs = parser.parse_args()
 
@@ -69,19 +71,52 @@ auto_model = ["gpt2", "gpt2-large", "gpt2-xl", "mistralai/Mistral-7B-v0.1"]
 # Load the dataset:
 model_checkpoint = pargs.model
 mask = MASK_MAP.get(model_checkpoint, MASK_MAP["default"])
-if pargs.test_model:
-    model_checkpoint = pargs.test_model_path
 
 if model_checkpoint in ["gpt2", "gpt2-large", "gpt2-xl", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
     prefix = "answer: "
 else:
     prefix = ""
+
+auto_reggressive = pargs.auto
+
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-if model_checkpoint in auto_model:
+if model_checkpoint in auto_model or auto_reggressive:
+
+    auto_reggressive = True
+
+    if pargs.test_model:
+        model_checkpoint = pargs.test_model_path
+
     tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(model_checkpoint)
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+
+
+    def preprocess_function(examples):
+        inputs = [doc.replace("_X_", "") + "" + ans for doc, ans in zip(examples["question"], examples["answer"])]
+        model_inputs = tokenizer(inputs, max_length=max_target_length, truncation=True, padding=True)
+        # pprint(inputs)
+        # exit()
+
+        model_inputs["labels"] = model_inputs["input_ids"].copy()
+        return model_inputs
+
 else:
+    if pargs.test_model:
+        model_checkpoint = pargs.test_model_path
     model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+    data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, label_pad_token_id=tokenizer.pad_token_id)
+
+    def preprocess_function(examples):
+        inputs = [prefix + doc.replace("_X_", mask) for doc in examples["question"]]
+        model_inputs = tokenizer(inputs, max_length=max_target_length, truncation=True)
+
+        # # Setup the tokenizer for targets
+        with tokenizer.as_target_tokenizer():
+            labels = tokenizer(examples["answer"], max_length=max_target_length, truncation=True)
+
+        model_inputs["labels"] = labels["input_ids"]
+        return model_inputs
 
 # tokenizer.save_pretrained(f"../temporal/results/pretrained-{model_checkpoint}")
 # model.save_pretrained(f"../temporal/results/pretrained-{model_checkpoint}")
@@ -154,28 +189,6 @@ raw_datasets = train_test_valid_dataset
 #     return result
 
 
-if model_checkpoint in auto_model:
-
-    def preprocess_function(examples):
-        inputs = [doc.replace("_X_", " ") + " " + ans for doc, ans in zip(examples["question"], examples["answer"])]
-        model_inputs = tokenizer(inputs, max_length=max_target_length, truncation=True, padding=True)
-
-        model_inputs["labels"] = model_inputs["input_ids"].copy()
-        return model_inputs
-
-
-else:
-    def preprocess_function(examples):
-        inputs = [prefix + doc.replace("_X_", mask) for doc in examples["question"]]
-        model_inputs = tokenizer(inputs, max_length=max_target_length, truncation=True)
-
-        # # Setup the tokenizer for targets
-        with tokenizer.as_target_tokenizer():
-            labels = tokenizer(examples["answer"], max_length=max_target_length, truncation=True)
-
-        model_inputs["labels"] = labels["input_ids"]
-        return model_inputs
-
 print("Preprocessing function running")
 preprocess_function(raw_datasets['train'][:2])
 
@@ -194,7 +207,7 @@ print ("Model Checkpoint: ", model_checkpoint)
 print("Setting up training arguments")
 batch_size = 32
 model_name = model_checkpoint.split("/")[-1]
-os.makedirs(f"./logs/{model_name}-finetuned2", exist_ok=True)
+os.makedirs(f"./logs/{model_name}-finetuned-rerun", exist_ok=True)
 args = Seq2SeqTrainingArguments(
     f"./results/{model_name}-finetuned2",
     evaluation_strategy = "epoch",
@@ -213,15 +226,6 @@ args = Seq2SeqTrainingArguments(
     seed=1,
     report_to = "tensorboard"
 )
-
-if model_checkpoint in auto_model:
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
-else:
-    data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, label_pad_token_id=tokenizer.pad_token_id)
-
-
-import nltk
-import numpy as np
 
 
 def compute_metrics(eval_pred):
@@ -256,9 +260,13 @@ trainer = Seq2SeqTrainer(
     compute_metrics=compute_metrics
 )
 
+# trainer.push_to_hub(f"temporal/{model_name}-finetuned-tempwiki")
+# exit()
+
 if not pargs.test_model or pargs.epoch == 1:
     print("Training")
     trainer.train()
+    trainer.push_to_hub(f"temporal/{model_name}-finetuned-tempwiki")
 
 # Generate some predictions
 print("Generating predictions")
@@ -272,6 +280,8 @@ our_metrics = {
 }
 
 # from metrics import accuracy, exact_ordering, relaxed_ordering
+if auto_reggressive:
+    mask = ""
 
 for i in tqdm(range(len(val_reviews))):
     # idx = random.randint(0, len(ds_reviews))
@@ -280,12 +290,12 @@ for i in tqdm(range(len(val_reviews))):
     answer = val_reviews['answer'][idx]
     input_dict = tokenizer(question, return_tensors="pt")
     input_ids = input_dict["input_ids"].to("cuda")
-    pred_ids = trainer.model.generate(input_ids, return_dict_in_generate=True, output_scores=True, max_new_tokens=10)
+    pred_ids = trainer.model.generate(input_ids, return_dict_in_generate=True, output_scores=True, max_new_tokens=10, pad_token_id=tokenizer.pad_token_id)
     # print(pred_ids)
     pred_answer = tokenizer.batch_decode(pred_ids.sequences, skip_special_tokens=True)[0]
 
     transition_scores = model.compute_transition_scores(pred_ids.sequences, pred_ids.scores, normalize_logits=True)
-    input_length = 1 if model.config.is_encoder_decoder else input_ids.input_ids.shape[1]
+    input_length = 1 if model.config.is_encoder_decoder else input_ids.shape[1]
     generated_tokens = pred_ids.sequences[:, input_length:]
 
     # for tok, score in zip(generated_tokens[0], transition_scores[0]):
@@ -307,7 +317,11 @@ for i in tqdm(range(len(val_reviews))):
     # our_metrics["exact_odering"].append(eo)
     # our_metrics["relaxed_ordering"].append(ro)
 
-    acc = 1 if pred_answer == answer else 0
+    if auto_reggressive:
+        pred_answer = pred_answer.replace("answer: ", "")
+        acc = 1 if answer in pred_answer else 0
+    else:
+        acc = 1 if pred_answer == answer else 0
     prob = np.exp(transition_scores[0].sum().cpu().numpy())
 
     data_to_csv.append([question, answer, pred_answer, acc, prob]) # , eo, ro
