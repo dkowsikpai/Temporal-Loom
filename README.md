@@ -29,7 +29,7 @@ Use the following script
 2. Second command converts the dataset to the csv format - question, answer format
 ```term
 python src/dataset_prep/combine_restructure_data.py --input ./data/train.json,./data/test.json,./data/val.json
-python src/dataset_prep/finetuning_data_jsonl_to_csv.py --dataset_path ./data/restructured_data.json --year 2010-2018
+python src/dataset_prep/finetuning_data_jsonl_to_csv.py --dataset-path ./data/restructured_data.json --year 2010-2018
 ```
 > Note: You can add more data by seperating the data path in `--input` parameter by comma.
 
@@ -63,9 +63,22 @@ Finetune the model using the code
 python src/seq2seq.py --model t5-base --train ./data/ft-2010-2018.csv --val ./data/ft-val-2010-2018.csv --cuda 3
 ```
 
+#### Sequential Training
+```term
+python src/seq2seq.py --train ./data/sequential/ft-2010-2015-auto-reg.csv --val ./data/sequential/ft-val-2010-2015-auto-reg.csv --cuda 3 --model t5-large | tee logs/t5-large-auto.txt
+
+python src/seq2seq.py --train ./data/sequential/ft-2010-2015-auto-reg.csv --val ./data/sequential/ft-val-2010-2015-auto-reg.csv --cuda 3 --model gpt2-large | tee logs/gpt2-large-auto.txt
+```
+
 
 ### Temsorboard
 ```term
 python -m tensorboard.main --logdir ./logs --port 9000
 python -m tensorboard.main --logdir ./results --port 8000
+```
+
+### Test
+#### Generate output
+```term
+python src/test/generate_txt.py --cuda 3 --test-model-path python src/test/generate_txt.py --cuda 3 --test-model-path /home/dkowsik/temporal/results/gpt2-large-finetuned2/checkpoint-13500
 ```

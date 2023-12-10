@@ -134,18 +134,18 @@ for i in range(len(data)):
          subject = subject.strip()
          data[i]["subject"] = subject
 
-         # Add Paraphrased sentences
-         data[i]["paraphrased_query"] = []
-         for rel_phrase in para_relations:
-            if rel_phrase["relation"] == rel:
-               paraphrases = []
-               for para_phase in rel_phrase["paraphrase"]:
-                  if rel_phrase["subject_first"]:
-                     para = subject + " " + para_phase + " _X_" 
-                  else:
-                     para = "_X_ " + para_phase + " " + subject + "."
-                  paraphrases.append(para)
-               data[i]["paraphrased_query"] = paraphrases
+         # # Add Paraphrased sentences
+         # data[i]["paraphrased_query"] = []
+         # for rel_phrase in para_relations:
+         #    if rel_phrase["relation"] == rel:
+         #       paraphrases = []
+         #       for para_phase in rel_phrase["paraphrase"]:
+         #          if rel_phrase["subject_first"]:
+         #             para = subject + " " + para_phase + " _X_" 
+         #          else:
+         #             para = "_X_ " + para_phase + " " + subject + "."
+         #          paraphrases.append(para)
+         #       data[i]["paraphrased_query"] = paraphrases
 
 # Give id for each sample
 count = 1
@@ -155,6 +155,6 @@ for i in range(len(data)):
 
 # Writing the output file
 print("Writing the output file")
-with jsonlines.open('./data/restructured_data_auto_gen.json', mode='w') as writer:
+with jsonlines.open('./data/sequential/restructured_data_auto_gen.json', mode='w') as writer:
     writer.write_all(data)
 

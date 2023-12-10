@@ -6,7 +6,7 @@ import random
 random.seed(42)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset_path', type=str, required=True)
+parser.add_argument('--dataset-path', type=str, required=True)
 parser.add_argument('--year', type=str, default="2010-2018")
 parser.add_argument('--val-size', type=int, default=0)
 
@@ -38,7 +38,7 @@ with jsonlines.open(args.dataset_path) as reader:
                 if "answer" in temp and random.random() < 0.4 and len(val_data) < args.val_size: #Randomly select 4000 for validation
                     val_data.append(temp.copy())
 
-                elif "answer" in temp: # If not in that year, skip
+                if "answer" in temp: # If not in that year, skip
                     data.append(temp.copy())
 
                 del temp["answer"]
@@ -88,8 +88,8 @@ with jsonlines.open(args.dataset_path) as reader:
     random.shuffle(val_data)
 
 df = pd.DataFrame(data)
-df.to_csv(f"./data/ft-{args.year}-auto-reg.csv", index=False)
+df.to_csv(f"./data/sequential/ft-{args.year}-auto-reg.csv", index=False)
 
 if args.val_size > 0:
     df = pd.DataFrame(val_data)
-    df.to_csv(f"./data/ft-val-{args.year}-auto-reg.csv", index=False)
+    df.to_csv(f"./data/sequential/ft-val-{args.year}-auto-reg.csv", index=False)

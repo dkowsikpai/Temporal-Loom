@@ -27,6 +27,7 @@ MASK_MAP = {
     "t5-large": "<extra_id_0>",
     "BART": "<mask>",
     "gpt2": "",
+    "gpt2-large": "",
     "default": "<extra_id_0>"
 }
     
@@ -41,6 +42,7 @@ parser.add_argument('--epoch', type=int, default=50)
 parser.add_argument('--test-model', type=bool, default=False)
 parser.add_argument('--test-model-path', type=str, default="t5-small")
 parser.add_argument('--auto', type=bool, default=False, help="Auto regressive")
+parser.add_argument('--postfix', type=str, default="2")
 parser.add_argument('--cuda', type=str, default=0)
 pargs = parser.parse_args()
 
@@ -72,7 +74,7 @@ auto_model = ["gpt2", "gpt2-large", "gpt2-xl", "mistralai/Mistral-7B-v0.1"]
 model_checkpoint = pargs.model
 mask = MASK_MAP.get(model_checkpoint, MASK_MAP["default"])
 
-if model_checkpoint in ["gpt2", "gpt2-large", "gpt2-xl", "t5-base", "t5-large", "t5-3b", "t5-11b"]:
+if model_checkpoint in [ "t5-base", "t5-large", "t5-3b", "t5-11b"]: # "gpt2", "gpt2-large", "gpt2-xl",
     prefix = "answer: "
 else:
     prefix = ""
@@ -81,6 +83,7 @@ auto_reggressive = pargs.auto
 
 tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 if model_checkpoint in auto_model or auto_reggressive:
+    print("Auto regressive")
 
     auto_reggressive = True
 
@@ -93,7 +96,7 @@ if model_checkpoint in auto_model or auto_reggressive:
 
 
     def preprocess_function(examples):
-        inputs = [doc.replace("_X_", "") + "" + ans for doc, ans in zip(examples["question"], examples["answer"])]
+        inputs = [doc.replace("_X_", "") + " " + ans for doc, ans in zip(examples["question"], examples["answer"])]
         model_inputs = tokenizer(inputs, max_length=max_target_length, truncation=True, padding=True)
         # pprint(inputs)
         # exit()
@@ -207,9 +210,9 @@ print ("Model Checkpoint: ", model_checkpoint)
 print("Setting up training arguments")
 batch_size = 32
 model_name = model_checkpoint.split("/")[-1]
-os.makedirs(f"./logs/{model_name}-finetuned-rerun", exist_ok=True)
+os.makedirs(f"./logs/{model_name}-finetuned2-{pargs.postfix}", exist_ok=True)
 args = Seq2SeqTrainingArguments(
-    f"./results/{model_name}-finetuned2",
+    f"./results/{model_name}-finetuned2-{pargs.postfix}",
     evaluation_strategy = "epoch",
     logging_steps=100, 
     learning_rate=3e-4,
@@ -266,7 +269,8 @@ trainer = Seq2SeqTrainer(
 if not pargs.test_model or pargs.epoch == 1:
     print("Training")
     trainer.train()
-    trainer.push_to_hub(f"temporal/{model_name}-finetuned-tempwiki")
+    trainer.save_model(f"./logs/{model_name}-finetuned2-{pargs.postfix}/checkpoint")
+    # trainer.push_to_hub(f"temporal/{model_name}-finetuned-tempwiki")
 
 # Generate some predictions
 print("Generating predictions")
@@ -287,12 +291,16 @@ for i in tqdm(range(len(val_reviews))):
     # idx = random.randint(0, len(ds_reviews))
     idx = i
     question = prefix + val_reviews['question'][idx].replace("_X_", mask)
+    # print(question)
+    # exit()
     answer = val_reviews['answer'][idx]
     input_dict = tokenizer(question, return_tensors="pt")
     input_ids = input_dict["input_ids"].to("cuda")
     pred_ids = trainer.model.generate(input_ids, return_dict_in_generate=True, output_scores=True, max_new_tokens=10, pad_token_id=tokenizer.pad_token_id)
     # print(pred_ids)
     pred_answer = tokenizer.batch_decode(pred_ids.sequences, skip_special_tokens=True)[0]
+    # print(pred_answer)
+    # exit()
 
     transition_scores = model.compute_transition_scores(pred_ids.sequences, pred_ids.scores, normalize_logits=True)
     input_length = 1 if model.config.is_encoder_decoder else input_ids.shape[1]
@@ -333,5 +341,5 @@ for i in tqdm(range(len(val_reviews))):
 
 df = pd.DataFrame(data_to_csv, columns=["Question", "Answer", "Predicted Answer", "Accuracy", "Probability"]) # "Exact Ordering", "Relaxed Ordering"
 val_ds_name = pargs.val.split("/")[-1].split(".")[0]
-df.to_csv(f"./logs/{model_name}-finetuned2/results-{val_ds_name}.csv")
-print("Saved to", f"./logs/{model_name}-finetuned2/results-{val_ds_name}.csv")
+df.to_csv(f"./logs/{model_name}-finetuned2-{pargs.postfix}/results-{val_ds_name}.csv")
+print("Saved to", f"./logs/{model_name}-finetuned2-{pargs.postfix}/results-{val_ds_name}.csv")

@@ -35,8 +35,8 @@ model = model.to("cuda")
 model.eval()
 
 data = [
-    "In year 2011: Donald Trump is a member of the  ",
-    "In year 2010: Donald Trump is a member of the  ",
+    "answer: In year 2011: Donald Trump is a member of the  ",
+    "answer: In year 2010: Donald Trump is a member of the  ",
 ]
 
 for i in data:
@@ -45,7 +45,7 @@ for i in data:
     # outputs = model.generate(input_ids, max_new_tokens=10)
     print(input_ids)
     outputs = input_ids
-    for _ in range(2):
+    for _ in range(3):
         outputs = model(input_ids)
 
         # outputs = model(input_ids)
