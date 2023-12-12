@@ -18,7 +18,7 @@ def getHTMLdocument(url):
     
 # assign required credentials 
 # assign URL 
-url_to_scrape = "https://www.worldometers.info/world-population/population-by-country/"
+url_to_scrape = "https://www.worldometers.info/gdp/gdp-by-country/"
   
 # create document 
 html_document = getHTMLdocument(url_to_scrape) 
@@ -36,6 +36,7 @@ for row in rows[1:]:
     links.append(link)
 
 print(links)
+# exit()
 
 for link in tqdm(links):
     url = "https://www.worldometers.info" + link
@@ -43,7 +44,7 @@ for link in tqdm(links):
     soup = BeautifulSoup(html_document, 'html.parser') 
     table = soup.find('table', attrs={'class':'table table-striped table-bordered table-hover table-condensed table-list'})
     df = pd.read_html(str(table))[0]
-    df.to_csv('./data/worldometer/countries/' + link.split('/')[2] + '.csv', index=False)
+    df.to_csv('./data/raw/worldometer_gdp/countries/' + link.split('/')[2] + '.csv', index=False)
     # rows = table.find_all('tr')
     # for row in rows[1:]:
     #     print(row.find_all('td')[0].text)
