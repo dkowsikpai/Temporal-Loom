@@ -1,4 +1,5 @@
 from ner import NER
+import re
 
 """
 This library contains functions to calculate the different metrics for the temporal task
@@ -73,6 +74,122 @@ def relaxed_ordering(preds: str, labels: list) -> int:
             return 0
         
     return 1
+
+# -----------------------------------------------------------------------------------------------------------------------------
+def get_nums(s:str)->list:
+    reg = r"[-+]?(?:\d*\.*\d+)"
+    return re.findall(reg, s)
+
+
+def norm_num(s:str)->float:
+    l = len(s)
+    n = float(s)
+
+    n = n / (10**(l-1))
+    return n
+
+
+
+def num_error(pred: str, label: str) -> int:
+    """
+    Accuracy and EO
+    Takes prediction and label as string and returns the number of errors
+
+    Error is defined as the number of year-object pairs in the prediction that are not in the label
+    """
+
+    pred = get_nums(pred)
+    label = get_nums(label)
+
+    pred = []
+
+    if len(pred) == 0 or len(label) == 0:
+        return 0
+    
+    error = 0.0
+    for i in range(len(pred)):
+        error += abs(norm_num(pred[i]) - norm_num(label[i]))
+
+    return error
+    
+
+def ivf(pred: str, label: str) -> int:
+    """
+    Integer vs Float
+    Takes prediction and label as string and returns the number of errors
+
+    Error is defined as the number of year-object pairs in the prediction that are not in the label
+    """
+
+    pred = get_nums(pred)
+    label = get_nums(label)
+
+    pred = []
+
+    if len(pred) == 0 or len(label) == 0:
+        return 0
+    
+    pred_dtypes = []
+    for i in range(len(pred)):
+        if "." in pred[i]:
+            pred_dtypes.append("f")
+        else:
+            pred_dtypes.append("i")
+
+    label_dtypes = []
+    for i in range(len(label)):
+        if "." in label[i]:
+            label_dtypes.append("f")
+        else:
+            label_dtypes.append("i")
+
+    acc = 0
+    for p, l in zip(pred_dtypes, label_dtypes):
+        if p == l:
+            acc += 1
+
+    return acc / len(pred_dtypes)
+
+
+def polarity(pred: str, label: str) -> int:
+    """
+    Integer vs Float
+    Takes prediction and label as string and returns the number of errors
+
+    Error is defined as the number of year-object pairs in the prediction that are not in the label
+    """
+
+    pred = get_nums(pred)
+    label = get_nums(label)
+
+    pred = []
+
+    if len(pred) == 0 or len(label) == 0:
+        return 0
+    
+    pred_pol = []
+    for i in range(len(pred)):
+        if "-" in pred[i]:
+            pred_pol.append("n")
+        else:
+            pred_pol.append("p")
+
+    label_pol = []
+    for i in range(len(label)):
+        if "-" in label[i]:
+            label_pol.append("n")
+        else:
+            label_pol.append("p")
+
+    
+
+    acc = 0
+    for p, l in zip(pred_pol, label_pol):
+        if p == l:
+            acc += 1
+
+    return acc / len(pred_pol)
+
 
 
 if __name__ == "__main__":
