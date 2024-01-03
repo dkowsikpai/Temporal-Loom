@@ -5,7 +5,7 @@ import re
 This library contains functions to calculate the different metrics for the temporal task
 Also, this library uses Spacy to extract the year-object pairs from the prediction and label
 """
-
+# --------------------- Non-numerical --------------
 get_year_object_pairs = NER(method="stanza").get_year_object_pairs
 
 def accuracy(preds: str, label: str) -> int:
@@ -75,7 +75,7 @@ def relaxed_ordering(preds: str, labels: list) -> int:
         
     return 1
 
-# -----------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------Numerical below-----------------------------------------------------------------------------
 def get_nums(s:str)->list:
     reg = r"[-+]?(?:\d*\.*\d+)"
     return re.findall(reg, s)
