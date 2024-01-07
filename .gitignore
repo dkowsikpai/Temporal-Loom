@@ -2,3 +2,7 @@ data/
 results/
 logs/
 models/
+mistral-tme-finetune/
+7b_models/
+**/trash/
+**/__pycache__/

@@ -1,0 +1,80 @@
+Loading 1947.csv
+Dataset({
+    features: ['id', 'query', 'answer'],
+    num_rows: 267
+})
+Dataset({
+    features: ['id', 'query', 'answer'],
+    num_rows: 53
+})
+Tokenizing...
+{'id': 'DVPR-8-0-1947', 'query': 'In 1947, Annual CO2 emissions per GDP (kg per international-$) in Asia (excl. China and India) was', 'answer': 0.9015327, 'input_ids': [1, 560, 28705, 28740, 28774, 28781, 28787, 28725, 23647, 5006, 28750, 25111, 660, 420, 10485, 325, 8087, 660, 5611, 28733, 11996, 297, 11065, 325], 'attention_mask': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 'labels': [1, 560, 28705, 28740, 28774, 28781, 28787, 28725, 23647, 5006, 28750, 25111, 660, 420, 10485, 325, 8087, 660, 5611, 28733, 11996, 297, 11065, 325]}
+trainable params: 7241732096 || all params: 7241732096 || trainable%: 100.0
+MistralForCausalLM(
+  (model): MistralModel(
+    (embed_tokens): Embedding(32000, 4096)
+    (layers): ModuleList(
+      (0-31): 32 x MistralDecoderLayer(
+        (self_attn): MistralAttention(
+          (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
+          (k_proj): Linear(in_features=4096, out_features=1024, bias=False)
+          (v_proj): Linear(in_features=4096, out_features=1024, bias=False)
+          (o_proj): Linear(in_features=4096, out_features=4096, bias=False)
+          (rotary_emb): MistralRotaryEmbedding()
+        )
+        (mlp): MistralMLP(
+          (gate_proj): Linear(in_features=4096, out_features=14336, bias=False)
+          (up_proj): Linear(in_features=4096, out_features=14336, bias=False)
+          (down_proj): Linear(in_features=14336, out_features=4096, bias=False)
+          (act_fn): SiLU()
+        )
+        (input_layernorm): MistralRMSNorm()
+        (post_attention_layernorm): MistralRMSNorm()
+      )
+    )
+    (norm): MistralRMSNorm()
+  )
+  (lm_head): Linear(in_features=4096, out_features=32000, bias=False)
+)
+******************************************************************************************************************************************************
+{'loss': 1.1674, 'learning_rate': 2.3869346733668342e-05, 'epoch': 0.75}
+{'eval_loss': 0.8485323786735535, 'eval_runtime': 11.3288, 'eval_samples_per_second': 4.678, 'eval_steps_per_second': 4.678, 'epoch': 0.75}
+{'loss': 0.608, 'learning_rate': 2.2613065326633167e-05, 'epoch': 1.5}
+{'eval_loss': 0.4260016679763794, 'eval_runtime': 11.3289, 'eval_samples_per_second': 4.678, 'eval_steps_per_second': 4.678, 'epoch': 1.5}
+{'loss': 0.5167, 'learning_rate': 2.135678391959799e-05, 'epoch': 2.25}
+{'eval_loss': 0.4434697926044464, 'eval_runtime': 11.3301, 'eval_samples_per_second': 4.678, 'eval_steps_per_second': 4.678, 'epoch': 2.25}
+{'loss': 0.4585, 'learning_rate': 2.0100502512562815e-05, 'epoch': 3.0}
+{'eval_loss': 0.3643411099910736, 'eval_runtime': 11.3262, 'eval_samples_per_second': 4.679, 'eval_steps_per_second': 4.679, 'epoch': 3.0}
+{'loss': 0.3986, 'learning_rate': 1.884422110552764e-05, 'epoch': 3.75}
+{'eval_loss': 0.39350467920303345, 'eval_runtime': 11.327, 'eval_samples_per_second': 4.679, 'eval_steps_per_second': 4.679, 'epoch': 3.75}
+{'loss': 0.4093, 'learning_rate': 1.7587939698492464e-05, 'epoch': 4.49}
+{'eval_loss': 0.32385438680648804, 'eval_runtime': 11.3288, 'eval_samples_per_second': 4.678, 'eval_steps_per_second': 4.678, 'epoch': 4.49}
+{'loss': 0.405, 'learning_rate': 1.6331658291457288e-05, 'epoch': 5.24}
+{'eval_loss': 0.3153187036514282, 'eval_runtime': 11.3411, 'eval_samples_per_second': 4.673, 'eval_steps_per_second': 4.673, 'epoch': 5.24}
+{'loss': 0.3984, 'learning_rate': 1.507537688442211e-05, 'epoch': 5.99}
+{'eval_loss': 0.310127317905426, 'eval_runtime': 11.3356, 'eval_samples_per_second': 4.676, 'eval_steps_per_second': 4.676, 'epoch': 5.99}
+{'loss': 0.3659, 'learning_rate': 1.3819095477386935e-05, 'epoch': 6.74}
+{'eval_loss': 0.3063794672489166, 'eval_runtime': 11.3281, 'eval_samples_per_second': 4.679, 'eval_steps_per_second': 4.679, 'epoch': 6.74}
+{'loss': 0.3579, 'learning_rate': 1.2562814070351759e-05, 'epoch': 7.49}
+{'eval_loss': 0.2917420566082001, 'eval_runtime': 11.3293, 'eval_samples_per_second': 4.678, 'eval_steps_per_second': 4.678, 'epoch': 7.49}
+{'loss': 0.3549, 'learning_rate': 1.1306532663316583e-05, 'epoch': 8.24}
+{'eval_loss': 0.2859465181827545, 'eval_runtime': 11.3291, 'eval_samples_per_second': 4.678, 'eval_steps_per_second': 4.678, 'epoch': 8.24}
+{'loss': 0.338, 'learning_rate': 1.0050251256281408e-05, 'epoch': 8.99}
+{'eval_loss': 0.2856748402118683, 'eval_runtime': 11.329, 'eval_samples_per_second': 4.678, 'eval_steps_per_second': 4.678, 'epoch': 8.99}
+{'loss': 0.3266, 'learning_rate': 8.793969849246232e-06, 'epoch': 9.74}
+{'eval_loss': 0.2831764817237854, 'eval_runtime': 11.3367, 'eval_samples_per_second': 4.675, 'eval_steps_per_second': 4.675, 'epoch': 9.74}
+{'loss': 0.3341, 'learning_rate': 7.537688442211055e-06, 'epoch': 10.49}
+{'eval_loss': 0.27776870131492615, 'eval_runtime': 11.3287, 'eval_samples_per_second': 4.678, 'eval_steps_per_second': 4.678, 'epoch': 10.49}
+{'loss': 0.3133, 'learning_rate': 6.2814070351758795e-06, 'epoch': 11.24}
+{'eval_loss': 0.27380555868148804, 'eval_runtime': 11.3287, 'eval_samples_per_second': 4.678, 'eval_steps_per_second': 4.678, 'epoch': 11.24}
+{'loss': 0.3199, 'learning_rate': 5.025125628140704e-06, 'epoch': 11.99}
+{'eval_loss': 0.2695348560810089, 'eval_runtime': 11.3271, 'eval_samples_per_second': 4.679, 'eval_steps_per_second': 4.679, 'epoch': 11.99}
+{'loss': 0.2935, 'learning_rate': 3.7688442211055276e-06, 'epoch': 12.73}
+{'eval_loss': 0.26390978693962097, 'eval_runtime': 11.3307, 'eval_samples_per_second': 4.678, 'eval_steps_per_second': 4.678, 'epoch': 12.73}
+{'loss': 0.2961, 'learning_rate': 2.512562814070352e-06, 'epoch': 13.48}
+{'eval_loss': 0.2584153413772583, 'eval_runtime': 11.331, 'eval_samples_per_second': 4.677, 'eval_steps_per_second': 4.677, 'epoch': 13.48}
+{'loss': 0.2796, 'learning_rate': 1.256281407035176e-06, 'epoch': 14.23}
+{'eval_loss': 0.25755783915519714, 'eval_runtime': 11.3253, 'eval_samples_per_second': 4.68, 'eval_steps_per_second': 4.68, 'epoch': 14.23}
+{'loss': 0.2772, 'learning_rate': 0.0, 'epoch': 14.98}
+{'eval_loss': 0.2578185498714447, 'eval_runtime': 11.3283, 'eval_samples_per_second': 4.679, 'eval_steps_per_second': 4.679, 'epoch': 14.98}
+{'train_runtime': 5127.6395, 'train_samples_per_second': 0.78, 'train_steps_per_second': 0.195, 'train_loss': 0.4109517011642456, 'epoch': 14.98}
