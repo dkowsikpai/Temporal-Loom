@@ -3,7 +3,7 @@ from transformers import PegasusForConditionalGeneration, PegasusTokenizer
 from rich.pretty import pprint
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 
 model_name = 'tuner007/pegasus_paraphrase'

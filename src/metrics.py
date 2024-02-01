@@ -1,12 +1,14 @@
-from ner import NER
+# from ner import NER
 import re
+import numpy as np
 
 """
 This library contains functions to calculate the different metrics for the temporal task
 Also, this library uses Spacy to extract the year-object pairs from the prediction and label
 """
 # --------------------- Non-numerical --------------
-get_year_object_pairs = NER(method="stanza").get_year_object_pairs
+def get_year_object_pairs(x):
+    pass
 
 def accuracy(preds: str, label: str) -> int:
     """
@@ -82,15 +84,38 @@ def get_nums(s:str)->list:
 
 
 def norm_num(s:str)->float:
-    l = len(s)
     n = float(s)
+    l = np.floor(np.log10(n)+1)
 
     n = n / (10**(l-1))
     return n
 
 
+def exact_match(pred: str, label: str, type="err") -> int:
+    """
+    Exact Match
+    Takes prediction and label as string and returns the number of errors
 
-def num_error(pred: str, label: str) -> int:
+    Error is defined as the number of year-object pairs in the prediction that are not in the label
+    """
+
+    pred = get_nums(pred)
+    label = get_nums(label)
+
+    p = len(pred) if type == "eo" else min(len(pred), len(label))
+
+    if len(pred) == 0 or len(label) == 0:
+        return 0
+    
+    correct = 0.0
+    for i in range(p):
+        if pred[i] == label[i]:
+            correct += 1
+
+    return correct
+
+
+def num_error(pred: str, label: str, type="err") -> int:
     """
     Accuracy and EO
     Takes prediction and label as string and returns the number of errors
@@ -101,19 +126,19 @@ def num_error(pred: str, label: str) -> int:
     pred = get_nums(pred)
     label = get_nums(label)
 
-    pred = []
+    p = len(pred) if type == "eo" else min(len(pred), len(label))
 
     if len(pred) == 0 or len(label) == 0:
         return 0
     
     error = 0.0
-    for i in range(len(pred)):
+    for i in range(p):
         error += abs(norm_num(pred[i]) - norm_num(label[i]))
 
     return error
     
 
-def ivf(pred: str, label: str) -> int:
+def ivf(pred: str, label: str, type="err") -> int:
     """
     Integer vs Float
     Takes prediction and label as string and returns the number of errors
@@ -124,13 +149,13 @@ def ivf(pred: str, label: str) -> int:
     pred = get_nums(pred)
     label = get_nums(label)
 
-    pred = []
+    p = len(pred) if type == "eo" else min(len(pred), len(label))
 
     if len(pred) == 0 or len(label) == 0:
         return 0
     
     pred_dtypes = []
-    for i in range(len(pred)):
+    for i in range(p):
         if "." in pred[i]:
             pred_dtypes.append("f")
         else:
@@ -161,14 +186,13 @@ def polarity(pred: str, label: str) -> int:
 
     pred = get_nums(pred)
     label = get_nums(label)
-
-    pred = []
+    p = len(pred) if type == "eo" else min(len(pred), len(label))
 
     if len(pred) == 0 or len(label) == 0:
         return 0
     
     pred_pol = []
-    for i in range(len(pred)):
+    for i in range(p):
         if "-" in pred[i]:
             pred_pol.append("n")
         else:

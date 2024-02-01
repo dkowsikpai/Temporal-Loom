@@ -10,12 +10,12 @@ import torch
 import argparse
 from rich.pretty import pprint
 
-parser = argparse.ArgumentParser(description='Finetune Mistral-7B')
+parser = argparse.ArgumentParser(description='Finetune LLaMA')
 parser.add_argument('--dataset-path', type=str, required=True, help='train dataset: Folder path containing csvs')
 parser.add_argument('--start-year', type=int, default=1947, help='start year')
 parser.add_argument('--end-year', type=int, default=2020, help='end year')
-parser.add_argument('--model-name', type=str, default='mistralai/Mistral-7B-v0.1', help='model name')
-parser.add_argument('--base-model-id', type=str, default='mistralai/Mistral-7B-v0.1', help='base model id')
+parser.add_argument('--model-name', type=str, default='meta-llama/Llama-2-7b-chat-hf', help='model name')
+parser.add_argument('--base-model-id', type=str, default='meta-llama/Llama-2-7b-chat-hf', help='base model id')
 parser.add_argument('--seed', type=int, default=42, help='seed')
 parser.add_argument('--batch-size', type=int, default=2, help='train batch size')
 parser.add_argument('--num', type=bool, default=False, help='numerical or non-numerical')
@@ -49,14 +49,15 @@ def seed_everything(seed):
 seed_everything(args.seed)
 
 ################### Setting up models ###################
+access_token = "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"
 model_name = args.model_name # 'mistralai/Mistral-7B-v0.1'
 base_model_id = args.base_model_id # "mistralai/Mistral-7B-v0.1"
-tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
+tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-chat-hf", token = access_token)
 model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.bfloat16,
         device_map="cuda",
         trust_remote_code=True,
+        token = access_token
     )
 
 ################### Loading Dataset ###################
@@ -195,7 +196,7 @@ if torch.cuda.device_count() > 1: # If more than 1 GPU
 
 
 project = "tme-finetune"
-base_model_name = "mistral"
+base_model_name = "llama2"
 run_name = base_model_name + "-" + project
 output_dir = f"./results/{base_model_id}-{ft_type}-finetuned-{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
 os.makedirs(output_dir, exist_ok=True)

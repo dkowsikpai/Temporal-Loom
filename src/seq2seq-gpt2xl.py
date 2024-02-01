@@ -10,12 +10,12 @@ import torch
 import argparse
 from rich.pretty import pprint
 
-parser = argparse.ArgumentParser(description='Finetune Mistral-7B')
+parser = argparse.ArgumentParser(description='Finetune GPT2XL')
 parser.add_argument('--dataset-path', type=str, required=True, help='train dataset: Folder path containing csvs')
 parser.add_argument('--start-year', type=int, default=1947, help='start year')
 parser.add_argument('--end-year', type=int, default=2020, help='end year')
-parser.add_argument('--model-name', type=str, default='mistralai/Mistral-7B-v0.1', help='model name')
-parser.add_argument('--base-model-id', type=str, default='mistralai/Mistral-7B-v0.1', help='base model id')
+parser.add_argument('--model-name', type=str, default='gpt2-xl', help='model name')
+parser.add_argument('--base-model-id', type=str, default='gpt2-xl', help='base model id')
 parser.add_argument('--seed', type=int, default=42, help='seed')
 parser.add_argument('--batch-size', type=int, default=2, help='train batch size')
 parser.add_argument('--num', type=bool, default=False, help='numerical or non-numerical')
@@ -51,10 +51,9 @@ seed_everything(args.seed)
 ################### Setting up models ###################
 model_name = args.model_name # 'mistralai/Mistral-7B-v0.1'
 base_model_id = args.base_model_id # "mistralai/Mistral-7B-v0.1"
-tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
+tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=torch.bfloat16,
         device_map="cuda",
         trust_remote_code=True,
     )
@@ -121,52 +120,6 @@ tokenizer.pad_token = tokenizer.eos_token
 print("Tokenizing...")
 tokenized_temporal_dataset = temporal_dataset.map(tokenize, batched=True, batch_size=1000)
 
-# def generate_and_tokenize_prompt(data_point):
-#     full_prompt =f"""Given a target sentence construct the underlying meaning representation of the input sentence as a single function with attributes and attribute values.
-#     This function should describe the target string accurately and the function must be one of the following ['inform', 'request', 'give_opinion', 'confirm', 'verify_attribute', 'suggest', 'request_explanation', 'recommend', 'request_attribute'].
-#     The attributes must be one of the following: ['name', 'exp_release_date', 'release_year', 'developer', 'esrb', 'rating', 'genres', 'player_perspective', 'has_multiplayer', 'platforms', 'available_on_steam', 'has_linux_release', 'has_mac_release', 'specifier']
-
-
-#     ### Target sentence:
-#     {data_point["target"]}
-
-
-
-#     ### Meaning representation:
-#     {data_point["meaning_representation"]}
-#     """
-#     return tokenize(full_prompt)
-# tokenizer.pad_token = "[PAD]"
-# tokenized_train_dataset = train_dataset.map(generate_and_tokenize_prompt)
-# tokenized_val_dataset = eval_dataset.map(generate_and_tokenize_prompt)
-
-# print(tokenized_train_dataset[4]['input_ids'])
-# print(len(tokenized_train_dataset[4]['input_ids']))
-
-# print("Target Sentence: " + test_dataset[1]['target'])
-# print("Meaning Representation: " + test_dataset[1]['meaning_representation'] + "\n")
-
-# eval_prompt = """Given a target sentence construct the underlying meaning representation of the input sentence as a single function with attributes and attribute values.
-# This function should describe the target string accurately and the function must be one of the following ['inform', 'request', 'give_opinion', 'confirm', 'verify_attribute', 'suggest', 'request_explanation', 'recommend', 'request_attribute'].
-# The attributes must be one of the following: ['name', 'exp_release_date', 'release_year', 'developer', 'esrb', 'rating', 'genres', 'player_perspective', 'has_multiplayer', 'platforms', 'available_on_steam', 'has_linux_release', 'has_mac_release', 'specifier']
-
-
-# ### Target sentence:
-# Earlier, you stated that you didn't have strong feelings about PlayStation's Little Big Adventure. Is your opinion true for all games which don't have multiplayer?
-
-
-# ### Meaning representation:
-# """
-
-# model_input = tokenizer(eval_prompt, return_tensors="pt").to("cuda")
-# model.eval()
-# with torch.no_grad():
-#     print(tokenizer.decode(model.generate(**model_input, max_new_tokens=256, pad_token_id=2)[0], skip_special_tokens=True))
-
-# from peft import prepare_model_for_kbit_training
-# model.gradient_checkpointing_enable()
-# model = prepare_model_for_kbit_training(model)
-
 def print_trainable_parameters(model):
     """
     Prints the number of trainable parameters in the model.
@@ -184,8 +137,6 @@ def print_trainable_parameters(model):
 
 
 print_trainable_parameters(model)
-# Apply the accelerator. You can comment this out to remove the accelerator.
-# model = accelerator.prepare_model(model)
 
 print(model)
 
@@ -210,7 +161,7 @@ training_args = TrainingArguments(
         warmup_steps=5,
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
-        per_device_eval_batch_size=args.batch_size,
+        per_device_eval_batch_size= args.batch_size,
         gradient_accumulation_steps=4,
         learning_rate=args.lr, # Want about 10x smaller than the Mistral learning rate
         logging_steps=50,
@@ -237,24 +188,6 @@ trainer = Trainer(
 )
 model.config.use_cache = False  # silence the warnings. Please re-enable for inference!
 trainer.train()
-
-# base_model = AutoModelForCausalLM.from_pretrained(
-#     base_model_id,  # Mistral, same as before
-    
-#     device_map="cuda",
-#     trust_remote_code=True,
-#     use_auth_token=True
-# )
-# tokenizer = AutoTokenizer.from_pretrained(base_model_id, trust_remote_code=True)
-# tokenizer.pad_token = tokenizer.eos_token
-
-
-# from peft import PeftModel
-# ft_model = PeftModel.from_pretrained(base_model, "mistral-viggo-finetune/checkpoint-1000")
-
-# ft_model.eval()
-# with torch.no_grad():
-#     print(tokenizer.decode(model.generate(**model_input, max_new_tokens=100, pad_token_id=2)[0], skip_special_tokens=True))
 
 
 ############### 
